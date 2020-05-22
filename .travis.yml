@@ -1,19 +1,4 @@
 sudo: false
-env:
-#  - CARGS="--enable-linux --disable-multilib --with-arch=rv32imac --with-abi=ilp32"
-#  - CARGS="--enable-linux --disable-multilib --with-arch=rv32imafdc --with-abi=ilp32"
-#  - CARGS="--enable-linux --disable-multilib --with-arch=rv32imafdc --with-abi=ilp32d"
-#  - CARGS="--enable-linux --disable-multilib --with-arch=rv64imac --with-abi=lp64"
-#  - CARGS="--enable-linux --disable-multilib --with-arch=rv64imafdc --with-abi=lp64"
-#  - CARGS="--enable-linux --disable-multilib --with-arch=rv64imafdc --with-abi=lp64d"
-   - CARGS="--disable-linux --disable-multilib --with-arch=rv32i --with-abi=ilp32"
-   - CARGS="--disable-linux --disable-multilib --with-arch=rv32im --with-abi=ilp32"
-   - CARGS="--disable-linux --disable-multilib --with-arch=rv32iac --with-abi=ilp32"
-   - CARGS="--disable-linux --disable-multilib --with-arch=rv32imac --with-abi=ilp32"
-   - CARGS="--disable-linux --disable-multilib --with-arch=rv32imafc --with-abi=ilp32f"
-   - CARGS="--disable-linux --disable-multilib --with-arch=rv64imac --with-abi=lp64"
-   - CARGS="--disable-linux --disable-multilib --with-arch=rv64imafdc --with-abi=lp64d"
-
 
 matrix:
   include:
@@ -44,6 +29,23 @@ matrix:
           - texinfo
           - gcc-6
           - g++-6
+
+env:
+#  - CARGS="--enable-linux --disable-multilib --with-arch=rv32imac --with-abi=ilp32"
+#  - CARGS="--enable-linux --disable-multilib --with-arch=rv32imafdc --with-abi=ilp32"
+#  - CARGS="--enable-linux --disable-multilib --with-arch=rv32imafdc --with-abi=ilp32d"
+#  - CARGS="--enable-linux --disable-multilib --with-arch=rv64imac --with-abi=lp64"
+#  - CARGS="--enable-linux --disable-multilib --with-arch=rv64imafdc --with-abi=lp64"
+#  - CARGS="--enable-linux --disable-multilib --with-arch=rv64imafdc --with-abi=lp64d"
+   - CARGS="--disable-linux --disable-multilib --with-arch=rv32i --with-abi=ilp32"
+   - CARGS="--disable-linux --disable-multilib --with-arch=rv32im --with-abi=ilp32"
+   - CARGS="--disable-linux --disable-multilib --with-arch=rv32iac --with-abi=ilp32"
+   - CARGS="--disable-linux --disable-multilib --with-arch=rv32imac --with-abi=ilp32"
+   - CARGS="--disable-linux --disable-multilib --with-arch=rv32imafc --with-abi=ilp32f"
+   - CARGS="--disable-linux --disable-multilib --with-arch=rv64imac --with-abi=lp64"
+   - CARGS="--disable-linux --disable-multilib --with-arch=rv64imafdc --with-abi=lp64d"
+
+
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; fi
