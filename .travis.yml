@@ -57,7 +57,7 @@ script:
   - ./configure --prefix=/tmp/build-default $CARGS
   # MacOS using clang by default, it will generate lots of warning message,
   # pipe stderr to stdout to prevent exceeded the maximum log length.
-  - if [ "$TRAVIS_OS_NAME" =   "osx" ]; then travis_wait 90 scripts/wrapper/make_stderr_tail check;fi
+  - if [ "$TRAVIS_OS_NAME" =   "osx" ]; then travis_wait 90 make check;fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then travis_wait 90 scripts/wrapper/make_tail check;fi
   # MacOS don't support linux user mode for qemu, so there is only build
   # testing.
