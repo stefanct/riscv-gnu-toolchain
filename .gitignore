@@ -1,5 +1,7 @@
 autom4te.cache
-build
+build-*
+install-newlib-nano
+stamps
 config.log
 config.status
 Makefile
