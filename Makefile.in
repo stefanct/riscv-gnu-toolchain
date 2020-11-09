@@ -39,6 +39,8 @@ AWK := @GAWK@
 SED := @GSED@
 PATH := $(INSTALL_DIR)/bin:$(PATH)
 
+CPU_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
+
 # Check to see if we need wrapper scripts for awk/sed (which point to
 # gawk/gsed on platforms where these aren't the default), otherwise
 # don't override these as the wrappers don't always work.
@@ -231,7 +233,7 @@ stamps/build-binutils-linux: $(BINUTILS_SRCDIR) stamps/check-write-permission
 		--disable-sim \
 		--disable-libdecnumber \
 		--disable-readline
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	mkdir -p $(dir $@) && touch $@
 
@@ -255,7 +257,7 @@ stamps/build-gdb-linux: $(GDB_SRCDIR)
 		--disable-ld \
 		--disable-gold \
 		--disable-gprof
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	mkdir -p $(dir $@) && touch $@
 
@@ -303,7 +305,7 @@ endif
 		--enable-kernel=3.0.0 \
 		$(GLIBC_TARGET_FLAGS) \
 		$($@_LIBDIROPTS)
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	+flock $(SYSROOT)/.lock $(MAKE) -C $(notdir $@) install install_root=$(SYSROOT)
 	mkdir -p $(dir $@) && touch $@
 
@@ -339,9 +341,9 @@ stamps/build-gcc-linux-stage1: $(GCC_SRCDIR) stamps/build-binutils-linux \
 		$(WITH_TUNE) \
 		CFLAGS_FOR_TARGET="-O2 $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-O2 $(CXXFLAGS_FOR_TARGET)"
-	$(MAKE) -C $(notdir $@) inhibit-libc=true all-gcc
+	$(MAKE) -C $(notdir $@) inhibit-libc=true all-gcc -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) inhibit-libc=true install-gcc
-	$(MAKE) -C $(notdir $@) inhibit-libc=true all-target-libgcc
+	$(MAKE) -C $(notdir $@) inhibit-libc=true all-target-libgcc -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) inhibit-libc=true install-target-libgcc
 	mkdir -p $(dir $@) && touch $@
 
@@ -375,7 +377,7 @@ stamps/build-gcc-linux-stage2: $(GCC_SRCDIR) $(addprefix stamps/build-glibc-linu
 		$(WITH_TUNE) \
 		CFLAGS_FOR_TARGET="-O2 $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-O2 $(CXXFLAGS_FOR_TARGET)"
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	cp -a $(INSTALL_DIR)/$(LINUX_TUPLE)/lib* $(SYSROOT)
 	mkdir -p $(dir $@) && touch $@
@@ -397,7 +399,7 @@ stamps/build-binutils-linux-native: $(BINUTILS_SRCDIR) stamps/build-gcc-linux-st
 		--disable-sim \
 		--disable-libdecnumber \
 		--disable-readline
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	mkdir -p $(dir $@) && touch $@
 
@@ -425,7 +427,7 @@ stamps/build-gcc-linux-native: $(GCC_SRCDIR) stamps/build-gcc-linux-stage2 stamp
 		$(WITH_ABI) \
 		$(WITH_ARCH) \
 		$(WITH_TUNE)
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	cp -a $(INSTALL_DIR)/$(LINUX_TUPLE)/lib* $(SYSROOT)
 	mkdir -p $(dir $@) && touch $@
@@ -449,7 +451,7 @@ stamps/build-binutils-newlib: $(BINUTILS_SRCDIR) stamps/check-write-permission
 		--disable-sim \
 		--disable-libdecnumber \
 		--disable-readline
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	mkdir -p $(dir $@) && touch $@
 
@@ -503,7 +505,7 @@ stamps/build-gcc-newlib-stage1: $(GCC_SRCDIR) stamps/build-binutils-newlib
 		$(WITH_TUNE) \
 		CFLAGS_FOR_TARGET="-Os $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-Os $(CXXFLAGS_FOR_TARGET)"
-	$(MAKE) -C $(notdir $@) all-gcc
+	$(MAKE) -C $(notdir $@) all-gcc -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install-gcc
 	mkdir -p $(dir $@) && touch $@
 
@@ -520,7 +522,7 @@ stamps/build-newlib: $(NEWLIB_SRCDIR) stamps/build-gcc-newlib-stage1
 		--enable-newlib-register-fini \
 		CFLAGS_FOR_TARGET="-O2 -D_POSIX_MODE $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-O2 -D_POSIX_MODE $(CXXFLAGS_FOR_TARGET)"
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	mkdir -p $(dir $@) && touch $@
 
@@ -544,7 +546,7 @@ stamps/build-newlib-nano: $(NEWLIB_SRCDIR) stamps/build-gcc-newlib-stage1
 		--disable-nls \
 		CFLAGS_FOR_TARGET="-Os -ffunction-sections -fdata-sections $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-Os -ffunction-sections -fdata-sections $(CXXFLAGS_FOR_TARGET)"
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	mkdir -p $(dir $@) && touch $@
 
@@ -601,7 +603,7 @@ stamps/build-gcc-newlib-stage2: $(GCC_SRCDIR) stamps/build-newlib \
 		$(WITH_TUNE) \
 		CFLAGS_FOR_TARGET="-Os $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-Os $(CXXFLAGS_FOR_TARGET)"
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	mkdir -p $(dir $@) && touch $@
 
@@ -627,7 +629,7 @@ stamps/build-binutils-musl: $(BINUTILS_SRCDIR) stamps/check-write-permission
 		--disable-sim \
 		--disable-libdecnumber \
 		--disable-readline
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	mkdir -p $(dir $@) && touch $@
 
@@ -661,9 +663,9 @@ stamps/build-gcc-musl-stage1: $(GCC_SRCDIR) stamps/build-binutils-musl \
 		$(WITH_TUNE) \
 		CFLAGS_FOR_TARGET="-O2 $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-O2 $(CXXFLAGS_FOR_TARGET)"
-	$(MAKE) -C $(notdir $@) inhibit-libc=true all-gcc
+	$(MAKE) -C $(notdir $@) inhibit-libc=true all-gcc -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) inhibit-libc=true install-gcc
-	$(MAKE) -C $(notdir $@) inhibit-libc=true all-target-libgcc
+	$(MAKE) -C $(notdir $@) inhibit-libc=true all-target-libgcc -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) inhibit-libc=true install-target-libgcc
 	mkdir -p $(dir $@) && touch $@
 
@@ -695,7 +697,7 @@ stamps/build-musl-linux: $(MUSL_SRCDIR) stamps/build-gcc-musl-stage1
 		--disable-werror \
 		--enable-shared \
 		$(MUSL_TARGET_FLAGS)
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	+flock $(SYSROOT)/.lock $(MAKE) -C $(notdir $@) install
 	mkdir -p $(dir $@) && touch $@
 
@@ -725,7 +727,7 @@ stamps/build-gcc-musl-stage2: $(GCC_SRCDIR) stamps/build-musl-linux \
 		$(WITH_TUNE) \
 		CFLAGS_FOR_TARGET="-O2 $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-O2 $(CXXFLAGS_FOR_TARGET)"
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	cp -a $(INSTALL_DIR)/$(MUSL_TUPLE)/lib* $(SYSROOT)
 	mkdir -p $(dir $@) && touch $@
@@ -778,7 +780,7 @@ stamps/build-qemu: $(srcdir)/qemu
 		--target-list=riscv64-linux-user,riscv32-linux-user \
 		--interp-prefix=$(INSTALL_DIR)/sysroot \
 		--python=python3
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	mkdir -p $(dir $@)
 	date > $@
@@ -788,7 +790,7 @@ stamps/build-dejagnu: $(srcdir)/riscv-dejagnu
 	mkdir $(notdir $@)
 	cd $(notdir $@) && $</configure \
 		--prefix=$(INSTALL_DIR)
-	$(MAKE) -C $(notdir $@)
+	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
 	$(MAKE) -C $(notdir $@) install
 	mkdir -p $(dir $@)
 	date > $@
