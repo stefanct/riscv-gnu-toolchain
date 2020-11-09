@@ -75,8 +75,9 @@ LINUX_TUPLE  ?= $(call make_tuple,$(XLEN),linux-gnu)
 NEWLIB_TUPLE ?= $(call make_tuple,$(XLEN),elf)
 MUSL_TUPLE ?= $(call make_tuple,$(XLEN),linux-musl)
 
-CFLAGS_FOR_TARGET := $(CFLAGS_FOR_TARGET_EXTRA) @target_cflags@ @cmodel@
+CFLAGS_FOR_TARGET := $(CFLAGS_FOR_TARGET_EXTRA) @target_cflags@ @cmodel@ -flto -ffat-lto-objects
 CXXFLAGS_FOR_TARGET := $(CXXFLAGS_FOR_TARGET_EXTRA) @target_cxxflags@ @cmodel@
+LDFLAGS_FOR_TARGET := $(LDFLAGS_FOR_TARGET_EXTRA) @cmodel@ -flto -ffat-lto-objects
 ASFLAGS_FOR_TARGET := $(ASFLAGS_FOR_TARGET_EXTRA) @cmodel@
 # --with-expat is required to enable XML support used by OpenOCD.
 BINUTILS_TARGET_FLAGS := --with-expat=yes $(BINUTILS_TARGET_FLAGS_EXTRA)
@@ -86,10 +87,14 @@ GDB_NATIVE_FLAGS := $(GDB_NATIVE_FLAGS_EXTRA)
 
 GLIBC_TARGET_FLAGS := $(GLIBC_TARGET_FLAGS_EXTRA)
 GLIBC_CC_FOR_TARGET ?= $(LINUX_TUPLE)-gcc
+GLIBC_AR_FOR_TARGET ?= $(LINUX_TUPLE)-gcc-ar
+GLIBC_RANLIB_FOR_TARGET ?= $(LINUX_TUPLE)-gcc-ranlib
 GLIBC_CXX_FOR_TARGET ?= $(LINUX_TUPLE)-g++
 GLIBC_TARGET_BOARDS ?= $(shell echo "$(GLIBC_MULTILIB_NAMES)" | sed 's!\([_a-z0-9]*\)-\([_a-z0-9]*\)!riscv-sim/-march=\1/-mabi=\2/@cmodel@!g')
 
 NEWLIB_CC_FOR_TARGET ?= $(NEWLIB_TUPLE)-gcc
+NEWLIB_AR_FOR_TARGET ?= $(NEWLIB_TUPLE)-gcc-ar
+NEWLIB_RANLIB_FOR_TARGET ?= $(NEWLIB_TUPLE)-gcc-ranlib
 NEWLIB_CXX_FOR_TARGET ?= $(NEWLIB_TUPLE)-g++
 NEWLIB_TARGET_BOARDS ?= $(shell echo "$(NEWLIB_MULTILIB_NAMES)" | sed 's!\([_a-z0-9]*\)-\([_a-z0-9]*\)!riscv-sim/-march=\1/-mabi=\2/@cmodel@!g')
 NEWLIB_NANO_TARGET_BOARDS ?= $(shell echo "$(NEWLIB_MULTILIB_NAMES)" | sed 's!\([_a-z0-9]*\)-\([_a-z0-9]*\)!riscv-sim-nano/-march=\1/-mabi=\2/@cmodel@!g')
@@ -97,6 +102,8 @@ NEWLIB_NANO_TARGET_BOARDS ?= $(shell echo "$(NEWLIB_MULTILIB_NAMES)" | sed 's!\(
 MUSL_TARGET_FLAGS := $(MUSL_TARGET_FLAGS_EXTRA)
 MUSL_CC_FOR_TARGET ?= $(MUSL_TUPLE)-gcc
 MUSL_CXX_FOR_TARGET ?= $(MUSL_TUPLE)-g++
+MUSL_AR_FOR_TARGET ?= $(MUSL_TUPLE)-gcc-ar
+MUSL_RANLIB_FOR_TARGET ?= $(MUSL_TUPLE)-gcc-ranlib
 
 CONFIGURE_HOST   = @configure_host@
 
@@ -291,6 +298,9 @@ endif
 	cd $(notdir $@) && \
 		CC="$(GLIBC_CC_FOR_TARGET) $($@_CFLAGS)" \
 		CXX="$(GLIBC_CXX_FOR_TARGET) $($@_CFLAGS)" \
+		AR="$(GLIBC_AR_FOR_TARGET)" \
+		RANLIB="$(GLIBC_RANLIB_FOR_TARGET)" \
+		LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" \
 		CFLAGS="$(CFLAGS_FOR_TARGET) -g -O2 $($@_CFLAGS)" \
 		CXXFLAGS="$(CXXFLAGS_FOR_TARGET) -g -O2 $($@_CFLAGS)" \
 		ASFLAGS="$(ASFLAGS_FOR_TARGET) $($@_CFLAGS)" \
@@ -484,10 +494,11 @@ stamps/build-gcc-newlib-stage1: $(GCC_SRCDIR) stamps/build-binutils-newlib
 		--target=$(NEWLIB_TUPLE) \
 		$(CONFIGURE_HOST) \
 		--prefix=$(INSTALL_DIR) \
+		--enable-lto \
 		--disable-shared \
 		--disable-threads \
 		--disable-tls \
-		--enable-languages=c,c++ \
+		--enable-languages=c,c++,lto \
 		@with_system_zlib@ \
 		--with-newlib \
 		--with-sysroot=$(INSTALL_DIR)/$(NEWLIB_TUPLE) \
@@ -503,6 +514,7 @@ stamps/build-gcc-newlib-stage1: $(GCC_SRCDIR) stamps/build-binutils-newlib
 		$(WITH_ABI) \
 		$(WITH_ARCH) \
 		$(WITH_TUNE) \
+		LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" \
 		CFLAGS_FOR_TARGET="-Os $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-Os $(CXXFLAGS_FOR_TARGET)"
 	$(MAKE) -C $(notdir $@) all-gcc -j$(CPU_CORES)
@@ -520,6 +532,10 @@ stamps/build-newlib: $(NEWLIB_SRCDIR) stamps/build-gcc-newlib-stage1
 		--enable-newlib-io-long-long \
 		--enable-newlib-io-c99-formats \
 		--enable-newlib-register-fini \
+		AR_FOR_TARGET="$(NEWLIB_AR_FOR_TARGET)" \
+		RANLIB_FOR_TARGET="$(NEWLIB_RANLIB_FOR_TARGET)" \
+		CC_FOR_TARGET="$(NEWLIB_CC_FOR_TARGET)" \
+		LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" \
 		CFLAGS_FOR_TARGET="-O2 -D_POSIX_MODE $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-O2 -D_POSIX_MODE $(CXXFLAGS_FOR_TARGET)"
 	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
@@ -544,6 +560,7 @@ stamps/build-newlib-nano: $(NEWLIB_SRCDIR) stamps/build-gcc-newlib-stage1
 		--enable-newlib-nano-formatted-io \
 		--disable-newlib-supplied-syscalls \
 		--disable-nls \
+		LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" \
 		CFLAGS_FOR_TARGET="-Os -ffunction-sections -fdata-sections $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-Os -ffunction-sections -fdata-sections $(CXXFLAGS_FOR_TARGET)"
 	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
@@ -581,9 +598,10 @@ stamps/build-gcc-newlib-stage2: $(GCC_SRCDIR) stamps/build-newlib \
 		--target=$(NEWLIB_TUPLE) \
 		$(CONFIGURE_HOST) \
 		--prefix=$(INSTALL_DIR) \
+		--enable-lto \
 		--disable-shared \
 		--disable-threads \
-		--enable-languages=c,c++ \
+		--enable-languages=c,c++,lto \
 		@with_system_zlib@ \
 		--enable-tls \
 		--with-newlib \
@@ -601,6 +619,9 @@ stamps/build-gcc-newlib-stage2: $(GCC_SRCDIR) stamps/build-newlib \
 		$(WITH_ABI) \
 		$(WITH_ARCH) \
 		$(WITH_TUNE) \
+		AR_FOR_TARGET="$(NEWLIB_AR_FOR_TARGET)" \
+		RANLIB_FOR_TARGET="$(NEWLIB_RANLIB_FOR_TARGET)" \
+		LDFLAGS_FOR_TARGET="$(LDFLAGS_FOR_TARGET)" \
 		CFLAGS_FOR_TARGET="-Os $(CFLAGS_FOR_TARGET)" \
 		CXXFLAGS_FOR_TARGET="-Os $(CXXFLAGS_FOR_TARGET)"
 	$(MAKE) -C $(notdir $@) -j$(CPU_CORES)
